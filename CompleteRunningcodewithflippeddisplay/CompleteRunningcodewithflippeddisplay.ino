@@ -170,12 +170,23 @@ void loop(){
     HTTPClient http;
     http.begin(server);
     http.addHeader("Content-Type","application/json");
-    String json="{\"stationNumber\":"+String(stationNumber)+",\"cardId\":\""+uid+"\"}";
-    int code=http.PUT(json);
+    String json = "";
+    int code = 0;
+    if(stationNumber >= 4){
+      json="{\"stationNumber\":"+String(stationNumber)+",\"cardId\":\""+uid+"\"}";
+      code=http.PUT(json);
+    }
+    else if(4 > stationNumber > 0){
+      json="{\"readerNumber\":"+String(stationNumber)+",\"cardNumber\":\""+uid+"\"}";
+      code=http.POST(json);
+    }
+    else if(stationNumber == 0){
+      json="{\"username\": new User,\"cardId\":\""+uid+"\"}";
+      code=http.POST(json);
+    }
     Serial.print("Sending " + String(json));
     if(code>0){
       String payload=http.getString();
-      Serial.println("Server: "+payload);
       if(payload.indexOf("\"success\":true")>0){
         bigMessage("ACCESS","GRANTED");
         buzz();
@@ -186,6 +197,7 @@ void loop(){
         buzz(150);
         digitalWrite(LED_CONNECTED,LOW);
       }
+      Serial.println("Response: "+ String(code));
     }
     else{
       Serial.print("Error: " + String(code));
