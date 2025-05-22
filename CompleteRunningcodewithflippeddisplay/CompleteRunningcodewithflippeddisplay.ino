@@ -178,7 +178,7 @@ void loop(){
       json="{\"stationNumber\":"+String(stationNumber)+",\"cardId\":\""+uid+"\"}";
       code=http.PUT(json);
     }
-    else if(4 > stationNumber > 0){
+    else if(stationNumber >= 1 && stationNumber <= 3){
       http.begin(serverLoad);
       http.addHeader("Content-Type","application/json");
       json="{\"readerNumber\":"+String(stationNumber)+",\"cardNumber\":\""+uid+"\"}";
@@ -187,13 +187,13 @@ void loop(){
     else if(stationNumber == 0){
       http.begin(serverAdd);
       http.addHeader("Content-Type","application/json");
-      json="{\"username\": new User,\"cardId\":\""+uid+"\"}";
+      json="{\"username\": \"new User\",\"cardId\":\""+uid+"\"}";
       code=http.POST(json);
     }
     Serial.print("Sending " + String(json));
     if(code>0){
       String payload=http.getString();
-      if(payload.indexOf("\"success\":true")>0){
+      if(code == 200){
         bigMessage("ACCESS","GRANTED");
         buzz();
         digitalWrite(LED_CONNECTED,HIGH);
@@ -201,7 +201,7 @@ void loop(){
       else{
         bigMessage("ACCESS","DENIED");
         buzz(150);
-        digitalWrite(LED_CONNECTED,LOW);
+        digitalWrite(LED_CONNECTED,HIGH);
       }
       Serial.println("Response: "+ String(code));
     }
