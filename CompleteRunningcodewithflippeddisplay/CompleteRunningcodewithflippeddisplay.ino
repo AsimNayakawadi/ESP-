@@ -187,7 +187,7 @@ void loop(){
     else if(stationNumber == 0){
       http.begin(serverAdd);
       http.addHeader("Content-Type","application/json");
-      json="{\"username\": \"new User\",\"cardId\":\""+uid+"\"}";
+      json="{\"username\": \"User " + String(uid) + "\",\"cardId\":\""+uid+"\"}";
       code=http.POST(json);
     }
     Serial.print("Sending " + String(json));
