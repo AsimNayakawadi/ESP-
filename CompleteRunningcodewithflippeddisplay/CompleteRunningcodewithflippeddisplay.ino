@@ -34,7 +34,9 @@ const char* ssid     = "G2-ESP";
 const char* password = "cFdwpYxQocnzeD48";
 
 // ==== SERVER CONFIG ====
-const char* server = "http://141.18.1.124:8080/api/station/check";
+const char* serverCheck = "http://141.18.1.124:8080/api/station/check";
+const char* serverLoad = "http://141.18.1.124:8080/api/user/load";
+const char* serverAdd = "http://141.18.1.124:8080/api/user";
 int stationNumber = 0; // read from DIP switches
 
 // ==== DIP SWITCH GPIOs ====
@@ -168,19 +170,23 @@ void loop(){
 
   if(wifiConnected){
     HTTPClient http;
-    http.begin(server);
-    http.addHeader("Content-Type","application/json");
     String json = "";
     int code = 0;
     if(stationNumber >= 4){
+      http.begin(serverCheck);
+      http.addHeader("Content-Type","application/json");
       json="{\"stationNumber\":"+String(stationNumber)+",\"cardId\":\""+uid+"\"}";
       code=http.PUT(json);
     }
     else if(4 > stationNumber > 0){
+      http.begin(serverLoad);
+      http.addHeader("Content-Type","application/json");
       json="{\"readerNumber\":"+String(stationNumber)+",\"cardNumber\":\""+uid+"\"}";
       code=http.POST(json);
     }
     else if(stationNumber == 0){
+      http.begin(serverAdd);
+      http.addHeader("Content-Type","application/json");
       json="{\"username\": new User,\"cardId\":\""+uid+"\"}";
       code=http.POST(json);
     }
