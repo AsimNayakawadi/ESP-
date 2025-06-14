@@ -1,3 +1,4 @@
+// Include necessary libraries for communication and display
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Wire.h>
@@ -5,6 +6,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+// Define pins for OLED I2C connection
 #define OLED_SDA 0
 #define OLED_SCL 2
 
@@ -47,6 +49,8 @@ int stationNumber = 0; // read from DIP switches
 #define DIP5 13
 #define DIP6 15
 
+// WiFi connection status tracking
+
 bool wifiConnected = false;
 unsigned long lastReconnectAttempt = 0;   // non‑blocking retry timer
 
@@ -57,7 +61,7 @@ inline void buzz(uint16_t duration = 200)
 {
   tone(BUZZER_PIN, 1000, duration);
 }
-
+// Read station number based on DIP switch settings
 inline uint8_t readStationNumber() {
   uint8_t v = 0;
   v |= digitalRead(DIP1) == LOW ? 1 << 0 : 0;
@@ -78,7 +82,7 @@ void showMessage(const char* l1, const char* l2 = nullptr, const char* l3 = null
   if (l3) u8g2.drawStr(0, 40, l3);
   u8g2.sendBuffer();
 }
-
+// Display large text (2 lines) on OLED
 void bigMessage(const char* a, const char* b) {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB08_tr);  // pick any large font
@@ -86,11 +90,9 @@ void bigMessage(const char* a, const char* b) {
   u8g2.drawStr(0, 60, b);
   u8g2.sendBuffer();
 }
-// ────────────────────────────────────
-
-// ────────────────────────────────────────────────────
 // -----------------------------------------------------------------------------
 //  WIFI MANAGEMENT
+// Try connecting to WiFi, show result on OLED and LED indicators
 // -----------------------------------------------------------------------------
 void serviceWiFi(){
   Serial.print("Wi‑Fi connecting ...");
@@ -119,6 +121,7 @@ void serviceWiFi(){
 
 // -----------------------------------------------------------------------------
 //  SETUP
+// Initialize all components: serial, pins, OLED, RFID, WiFi
 // -----------------------------------------------------------------------------
 void setup(){
   Serial.begin(115200);
@@ -144,12 +147,13 @@ void setup(){
   u8g2.sendBuffer();
   SPI.begin();
   rfid.PCD_Init();
+  // Check if RFID is working properly
   if(rfid.PCD_ReadRegister(rfid.VersionReg)==0x00||rfid.PCD_ReadRegister(rfid.VersionReg)==0xFF){
     showMessage("RFID ERROR","Check wiring!");
     digitalWrite(LED_ERROR,HIGH);
     //while(true); test
   }  
-  
+  // Try to connect to WiFi if not connected
   if(WiFi.status()!=WL_CONNECTED && (millis()-lastReconnectAttempt>=5000)){
     lastReconnectAttempt=millis();
     serviceWiFi(); 
@@ -158,20 +162,25 @@ void setup(){
 
 // -----------------------------------------------------------------------------
 //  MAIN LOOP
+// Continuously scan for RFID tags and communicate with the server
 // -----------------------------------------------------------------------------
 void loop(){
+  // Periodic WiFi reconnect
   if(WiFi.status()!=WL_CONNECTED && (millis()-lastReconnectAttempt>=5000)){
     lastReconnectAttempt=millis();
     serviceWiFi(); 
   }
-
+  // Check if a new card is present
   if(!rfid.PICC_IsNewCardPresent()||!rfid.PICC_ReadCardSerial()) return;
+  // Read UID from the tag
   String uid;for(byte i=0;i<rfid.uid.size;i++){if(rfid.uid.uidByte[i]<0x10)uid+="0";uid+=String(rfid.uid.uidByte[i],HEX);}uid.toLowerCase();Serial.println("UID: "+uid);
-
+  // If connected to WiFi, send UID to the server
   if(wifiConnected){
     HTTPClient http;
     String json = "";
     int code = 0;
+
+    // Choose endpoint based on station number
     if(stationNumber >= 4){
       http.begin(serverCheck);
       http.addHeader("Content-Type","application/json");
@@ -191,6 +200,7 @@ void loop(){
       code=http.POST(json);
     }
     Serial.print("Sending " + String(json));
+    // Handle server response
     if(code>0){
       String payload=http.getString();
       if(code == 200){
@@ -217,16 +227,20 @@ void loop(){
     http.end();
   }
   else{
+    // Offline mode: still grant access, just log locally
     bigMessage("OFFLINE","GRANTED");
     buzz();
     digitalWrite(LED_CONNECTED,LOW);
   }
 
+  // Reset reader
   delay(600);
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
+  // Wait until tag is removed
   while(rfid.PICC_IsNewCardPresent()||rfid.PICC_ReadCardSerial()){
     delay(20);
   }
+  // Prompt for next scan
   showMessage("Scan your card...");
 }
