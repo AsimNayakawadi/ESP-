@@ -1,0 +1,11 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore Arduino build files
+*.hex
+*.elf
+
+# OS-specific files
+.DS_Store
+Thumbs.db
